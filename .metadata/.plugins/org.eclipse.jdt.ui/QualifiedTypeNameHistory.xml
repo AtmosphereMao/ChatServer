@@ -3,4 +3,14 @@
 <fullyQualifiedTypeName name="java.util.Vector"/>
 <fullyQualifiedTypeName name="java.sql.ClientInfoStatus"/>
 <fullyQualifiedTypeName name="javax.swing.text.html.CSS"/>
+<fullyQualifiedTypeName name="java.io.BufferedReader"/>
+<fullyQualifiedTypeName name="java.io.InputStreamReader"/>
+<fullyQualifiedTypeName name="java.io.PrintStream"/>
+<fullyQualifiedTypeName name="org.eclipse.core.internal.registry.ReadWriteMonitor"/>
+<fullyQualifiedTypeName name="java.awt.font.TextMeasurer"/>
+<fullyQualifiedTypeName name="org.eclipse.swt.widgets.FileDialog"/>
+<fullyQualifiedTypeName name="java.io.FileOutputStream"/>
+<fullyQualifiedTypeName name="java.io.DataInputStream"/>
+<fullyQualifiedTypeName name="java.io.BufferedInputStream"/>
+<fullyQualifiedTypeName name="org.eclipse.jface.dialogs.MessageDialog"/>
 </qualifiedTypeNameHistroy>

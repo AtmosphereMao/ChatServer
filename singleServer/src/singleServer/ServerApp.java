@@ -3,21 +3,19 @@ package singleServer;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import java.net.*;
-import java.sql.ClientInfoStatus;
 import java.io.*;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.wb.swt.SWTResourceManager;
+
+
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.events.TouchListener;
-import org.eclipse.swt.events.TouchEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import java.util.Vector;
-
-import javax.swing.text.html.CSS;
 
 public class ServerApp {
 
@@ -25,15 +23,11 @@ public class ServerApp {
 	private Text textPort;
 	List list;
 	ServerSocket server = null;
-	Socket socket = null;
-	Socket filesocket = null;
-	BufferedReader cin = null;
-	DataInputStream fin = null;
-	PrintStream cout = null;
-	PrintStream fout = null;
+
+	private char connFlag='F';
 	private Text textManager;
 	private Text textArea;
-	static Vector userList = new Vector();
+	static Vector<Client> userList = new Vector<Client>();
 	private char flag = 'T';
 	private String[] fFile;
 	/**
@@ -42,6 +36,10 @@ public class ServerApp {
 	 */
 	// 内部类 client
 	class Client extends Thread{
+		BufferedReader cin = null;
+		DataInputStream fin = null;
+		PrintStream cout = null;
+		PrintStream fout = null;
 		Socket s;
 		Socket f;
 		String username;
@@ -63,8 +61,8 @@ public class ServerApp {
 			this.s = s;
 			this.f = f;
 			try{
-				cin = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				fin = new DataInputStream(new BufferedInputStream(filesocket.getInputStream()));
+				cin = new BufferedReader(new InputStreamReader(this.s.getInputStream()));
+				fin = new DataInputStream(new BufferedInputStream(this.f.getInputStream()));
 				cout = new PrintStream(this.s.getOutputStream());
 				fout = new PrintStream(this.f.getOutputStream());
 				String str =cin.readLine();
@@ -82,6 +80,7 @@ public class ServerApp {
 		public void send(String msg){
 			cout.println(msg);
 			cout.flush(); // 清空缓冲区数据
+			
 		}
 		public void run() {
 			String fd = null;
@@ -94,14 +93,14 @@ public class ServerApp {
 						str = cin.readLine();
 					}catch(IOException e)
 					{
-						textArea.append("读取客户信息错误");
+						appendTA("读取客户信息错误");
 						disconnect(this);
 						return;
 					}
-					if(str.equalsIgnoreCase("exit"))
+					if(str.equalsIgnoreCase("EXIT"))
 					{
 						disconnect(this);
-						return;
+						this.stop();
 					}
 					else if(str.contains("SendFileByte"))
 					{
@@ -124,11 +123,19 @@ public class ServerApp {
 							flag='T';
 					}
 				}else{
-					
+					String savePath = SaveFile(fin,fFile[1],Integer.parseInt(fFile[2]));
+					SendFile(savePath,fFile[1],Integer.parseInt(fFile[2]),fd);
+					Client conn = GetClient(fFile[3]);
+					conn.send(fFile[1]+"已发送至用用户"+fFile[0]);
+					flag='G';
 				}
 				
 			}
 		}
+
+
+
+
 		
 	}
 	// 内部类 connect
@@ -142,7 +149,7 @@ public class ServerApp {
 					// TODO Auto-generated method stub
 					Client conn = new Client(socket,filesocket);
 					userList.addElement(conn);
-					String username = conn.username.substring(conn.username.indexOf(":")+1)
+					String username = conn.username.substring(conn.username.indexOf(":")+1);
 					if(list.indexOf(username)<0)
 					{
 						conn.start();
@@ -151,14 +158,29 @@ public class ServerApp {
 						for(int i=0;i<userList.size();i++)
 						{
 							conns = (Client) userList.elementAt(i);
+							conns.send("listusernames"+getlistname());
 						}
 					}
 				}
 				
 			});
 		}
+
+		Socket socket;
+		Socket filesocket;
+		public void run(){
+			while(true){
+				try{
+					socket = server.accept();
+					filesocket = server.accept();
+				}
+				catch(IOException e2)
+				{
+					textArea.append("客户连接失败\n");
+				}this.appendformation();
+			}
+		}
 	}
-	
 	public static void main(String[] args) {
 		try {
 			ServerApp window = new ServerApp();
@@ -186,6 +208,7 @@ public class ServerApp {
 	 * Create method
 	 */
 	
+	// 断开连接
 	public void disconnect(Client conn){
 		String username =  conn.username.substring(conn.username.indexOf(":")+1);
 		Display.getDefault().syncExec(new Runnable(){
@@ -213,9 +236,10 @@ public class ServerApp {
 		for(int i=0;i<userList.size();i++)
 		{
 			conns = (Client) userList.elementAt(i);
-			conns.send("当前用户:"+getlistname());
+			conns.send("listusernames"+getlistname());
 		}
 	}
+	// GET 列表用户名单
 	public String getlistname()
 	{
 		Client conns;
@@ -229,9 +253,89 @@ public class ServerApp {
 		}
 		return str;
 	}
+	public void SendFile(String savePath,String filename,int filelen,String line)
+	{ 
+		int len=1; 
+		byte[] buf = new byte[filelen]; 
+		try{ 
+			DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(savePath))); 
+			Client c=GetClient(fFile[0]);
+			c.send(line);
+			while ((len = fis.read(buf,0,buf.length)) > 0) 
+			{ 
+				c.fout.write(buf,0,len);
+				c.fout.flush(); 
+			}
+			fis.close();
+			deleteFile(savePath); 
+		}
+		catch(Exception e){
+				e.printStackTrace();
+			} 
+	}
+	// 保存文件
+	public String SaveFile(DataInputStream gsm,String filename,int filelen)
+	{
+		int len = 1;
+//		System.out.println(System.getProperty("user.dir"));
+		
+		String savePath = ".\\server\\"+filename;
+		File testFile = new File(".\\server");
+		if(!testFile.exists())
+			testFile.mkdirs();
+		File f = new File(savePath);
+		byte[] buf = new byte[filelen];
+		try{
+			FileOutputStream in = new FileOutputStream(f);
+			while((len=gsm.read(buf,0,buf.length))>0)
+			{
+				in.write(buf,0,len);
+				in.flush();
+				if(f.length()>=filelen)
+				{
+					break;
+				}
+			}
+			in.close();
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		return savePath;
+		
+	}
+	
+	// 删除文件
+	public boolean deleteFile(String path)
+	{
+		File f = new File(path);
+		if(f.isFile() && f.exists()){
+			f.delete();
+			return true;
+		}
+		return false;
+	}
+	// getClient
+	
+	private Client GetClient(String username) {
+		// TODO Auto-generated method stub
+		for(int i=0;i<userList.size();i++)
+		{
+			System.out.println(i);
+			Client conn = (Client) userList.elementAt(i);
+//			System.out.println(conn.username.substring(conn.username.indexOf(":")+1));
+			if(username.equals(conn.username.substring(conn.username.indexOf(":")+1)));
+				return conn;
+		}
+		
+		return null;
+	}
+	
 	/**
 	 * Create contents of the window.
 	 */
+	
+	
 	protected void createContents() {
 		shell = new Shell();
 		shell.setModified(true);
@@ -257,37 +361,36 @@ public class ServerApp {
 					textArea.append("端口参数不能为空\n");
 					return;
 				}
-				try{
-					server = new ServerSocket(Integer.parseInt(textPort.getText()));
-					textArea.append("服务器端口打开成功\n");
-				}catch(IOException e1)
-				{
-					textArea.append("服务器端口打开错误\n");
-				}
-				try{
-					socket = server.accept();
-				}catch(IOException e2)
-				{
-					textArea.append("用户连接服务器出错\n");
-				}
-				if(server == null)
-				{
-					textArea.append("端口为空\n");
-					return;
-				}
-				
+				if(connFlag=='F')
+				{					
+					try{
+						server = new ServerSocket(Integer.parseInt(textPort.getText()));
+						textArea.append("服务器端口打开成功\n");
+						btnStart.setText("关闭端口");
+						connFlag='T';
+					}catch(IOException e1)
+					{
+						textArea.append("服务器端口打开错误\n");
+					}
+					if(server == null)
+					{
+						textArea.append("端口为空\n");
+						return;
+					}
+					ConnectSocket conn = new ConnectSocket();
+					conn.start();
+				}else{
+					try {
+						server.close();
+						textArea.append("服务器端口关闭成功\n");
+						btnStart.setText("开始监听");
+						connFlag='F';
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						textArea.append("服务器端口关闭错误\n");
+					}
 					
-//				try{
-//					cin = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//					cout = new PrintStream(socket.getOutputStream());
-//					String str = "来自"+InetAddress.getLocalHost().toString()+"的连接信息";
-//					cout.println(str);
-//					textArea.append("向服务器发送如下的信息:"+str+"\n");
-//				}catch(IOException e3)
-//				{
-//					textArea.append("输入输出异常\n");
-//				}
-				
+				}
 			}
 		});
 
@@ -302,9 +405,24 @@ public class ServerApp {
 		btnSend.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				String str = textManager.getText();
-				textArea.append("向服务器发送信息:"+str+"\n");
-				cout.println(str);
+				
+				if(list.getSelectionIndex()>=0){
+					Client c = GetClient(list.getSelection()[0]);
+//					System.out.println(list.getSelection()[0]);
+					if(c!=null)
+						c.send("服务端："+textManager.getText());
+						textArea.append("服务端："+textManager.getText()+"\n");
+				}else{
+					for(int i=0;i<list.getItemCount();i++)
+					{
+//						System.out.println(list.getItem(i));
+						Client c = GetClient(list.getItem(i));
+						if(c!=null)
+							c.send("服务端："+textManager.getText());
+					}
+					textArea.append("服务端："+textManager.getText()+"\n");
+				}
+				
 			}
 		});
 		btnSend.setText("发送信息");
@@ -316,7 +434,12 @@ public class ServerApp {
 		btnKick.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-
+				if(list.getSelectionIndex()>=0)
+				{
+					Client c = GetClient(list.getSelection()[0]);
+					if(c!=null)
+						disconnect(c);
+				}
 			}
 		});
 		btnKick.setText("断开用户");
