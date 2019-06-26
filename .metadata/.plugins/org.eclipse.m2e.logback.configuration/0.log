@@ -278,3 +278,4 @@ Caused by: org.eclipse.aether.transfer.ArtifactTransferException: Failure to tra
 	... 8 common frames omitted
 2019-06-25 08:40:05,102 [Worker-10] INFO  c.g.t.t.d.PublishedGradleVersions - Gradle version information cache file is out-of-date. Remote download required.
 2019-06-25 10:54:07,885 [main] INFO  c.g.t.t.d.PublishedGradleVersions - Gradle version information cache file is not out-of-date. No remote download required.
+2019-06-26 10:43:27,680 [main] INFO  c.g.t.t.d.PublishedGradleVersions - Gradle version information cache file is out-of-date. Remote download required.

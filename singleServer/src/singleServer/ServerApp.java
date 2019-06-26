@@ -27,7 +27,7 @@ public class ServerApp {
 	private char connFlag='F';
 	private Text textManager;
 	private Text textArea;
-	static Vector<Client> userList = new Vector<Client>();
+	static Vector userList = new Vector();
 	private char flag = 'T';
 	private String[] fFile;
 	/**
@@ -176,7 +176,7 @@ public class ServerApp {
 				}
 				catch(IOException e2)
 				{
-					textArea.append("客户连接失败\n");
+					textArea.append("客户连接失败\n");	
 				}this.appendformation();
 			}
 		}
@@ -319,12 +319,16 @@ public class ServerApp {
 	
 	private Client GetClient(String username) {
 		// TODO Auto-generated method stub
+
+//		for(int i=0;i<userList.size();i++)
+//			System.out.println(userList.elementAt(i));
+//		System.out.println("user:"+username);
 		for(int i=0;i<userList.size();i++)
 		{
-			System.out.println(i);
 			Client conn = (Client) userList.elementAt(i);
-//			System.out.println(conn.username.substring(conn.username.indexOf(":")+1));
-			if(username.equals(conn.username.substring(conn.username.indexOf(":")+1)));
+//			System.out.println("equals:"+conn.username.substring(conn.username.indexOf(":")+1));
+			
+			if(username.equals(conn.username.substring(conn.username.indexOf(":")+1)))
 				return conn;
 		}
 		
@@ -405,22 +409,25 @@ public class ServerApp {
 		btnSend.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				
-				if(list.getSelectionIndex()>=0){
+				if(connFlag=='F')
+				{
+					textArea.append("服务器未开启，无法发送信息\n");
+					return;
+				}
+				if(list.getSelectionIndex()!=0){
 					Client c = GetClient(list.getSelection()[0]);
 //					System.out.println(list.getSelection()[0]);
 					if(c!=null)
-						c.send("服务端："+textManager.getText());
-						textArea.append("服务端："+textManager.getText()+"\n");
+						c.send("服务端->"+list.getSelection()[0]+"："+textManager.getText());
+						textArea.append("服务端->"+list.getSelection()[0]+"："+textManager.getText()+"\n");
 				}else{
-					for(int i=0;i<list.getItemCount();i++)
+					for(int i=1;i<list.getItemCount();i++)
 					{
-//						System.out.println(list.getItem(i));
 						Client c = GetClient(list.getItem(i));
 						if(c!=null)
-							c.send("服务端："+textManager.getText());
+							c.send("服务端->All："+textManager.getText());
 					}
-					textArea.append("服务端："+textManager.getText()+"\n");
+					textArea.append("服务端->All："+textManager.getText()+"\n");
 				}
 				
 			}
@@ -429,6 +436,8 @@ public class ServerApp {
 		btnSend.setBounds(344, 41, 80, 27);
 		
 		list = new List(shell, SWT.BORDER);
+		list.setItems(new String[] {"All"});
+		list.setSelection(0);
 		list.setBounds(10, 97, 80, 122);
 		Button btnKick = new Button(shell, SWT.NONE);
 		btnKick.addSelectionListener(new SelectionAdapter() {
