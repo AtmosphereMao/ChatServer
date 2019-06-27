@@ -50,7 +50,7 @@ public class LoginApp {
 	protected void createContents() {
 		shell = new Shell();
 		shell.setSize(450, 338);
-		shell.setText("SWT Application");
+		shell.setText("Login");
 		
 		Label label = new Label(shell, SWT.NONE);
 		label.setFont(SWTResourceManager.getFont("Î¢ÈíÑÅºÚ", 12, SWT.NORMAL));

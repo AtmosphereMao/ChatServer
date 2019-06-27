@@ -260,6 +260,7 @@ public class ServerApp {
 		try{ 
 			DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(savePath))); 
 			Client c=GetClient(fFile[0]);
+//			System.out.println(line);
 			c.send(line);
 			while ((len = fis.read(buf,0,buf.length)) > 0) 
 			{ 
@@ -344,7 +345,7 @@ public class ServerApp {
 		shell = new Shell();
 		shell.setModified(true);
 		shell.setSize(450, 300);
-		shell.setText("SWT Application");
+		shell.setText("Server");
 		shell.setLayout(null);
 		
 		Label label = new Label(shell, SWT.NONE);
@@ -371,6 +372,7 @@ public class ServerApp {
 						server = new ServerSocket(Integer.parseInt(textPort.getText()));
 						textArea.append("服务器端口打开成功\n");
 						btnStart.setText("关闭端口");
+						textPort.setEnabled(false);
 						connFlag='T';
 					}catch(IOException e1)
 					{
@@ -388,6 +390,7 @@ public class ServerApp {
 						server.close();
 						textArea.append("服务器端口关闭成功\n");
 						btnStart.setText("开始监听");
+						textPort.setEnabled(true);
 						connFlag='F';
 					} catch (IOException e1) {
 						// TODO Auto-generated catch block
@@ -429,6 +432,7 @@ public class ServerApp {
 					}
 					textArea.append("服务端->All："+textManager.getText()+"\n");
 				}
+				textManager.setText("");
 				
 			}
 		});

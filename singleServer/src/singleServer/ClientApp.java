@@ -37,6 +37,7 @@ public class ClientApp {
 	private PrintStream cout = null;
 	public String[] fFile;
 	private Label labelUsername;
+	private Button button;
 
 	/**
 	 * Launch the application.
@@ -139,9 +140,59 @@ public class ClientApp {
 		}
 	}
 	
+	class SendFileThread extends Thread{
+		private String filePath;
+		private String fileClient;
+		private String fileManager;
+		private File f;
+		private int count=0;
+		public SendFileThread(String filePath,String fileClient) {
+			this.filePath = filePath;
+			this.fileClient = fileClient;
+		}
+		   
+	   public void run() {
+		   fileManager = "SendFileByte"+fileClient;
+			f = new File(filePath);
+			try{
+				DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
+				DataOutputStream ps = new DataOutputStream(filesocket.getOutputStream());
+				byte[] buf = new byte[fis.available()];
+				fileManager=fileManager+"#"+f.getName()+"#"+f.length()+"#"+username;
+				cout.println(fileManager); cout.flush(); 
+				while ((count = fis.read(buf,0,buf.length)) > 0) {
+					ps.write(buf,0,count); ps.flush(); 
+				}
+				fis.close();
+			}catch(Exception e){
+					e.printStackTrace();
+	
+			}
+	   }
+
+	}
 	/**
 	 * create method
 	 */
+	private void SendFileALL() {
+		// TODO Auto-generated method stub
+		FileDialog dlg = new FileDialog(new Shell(),SWT.OPEN);
+		dlg.setText("选择需要发送的文件");
+		String filePath = dlg.open();
+		if(filePath == null)
+			return;
+		
+		String fileClient = null;
+		for(int i=0;i<list.getItemCount();i++)
+		{	
+			fileClient = list.getItem(i);
+			if(fileClient.equals(username))
+				continue;
+			System.out.println(i);
+			SendFileThread sendF = new SendFileThread(filePath, fileClient);
+			sendF.start();
+		}
+	}
 	private void SendFile(String fileClient) {
 		int count=0;
 		// TODO Auto-generated method stub
@@ -150,7 +201,7 @@ public class ClientApp {
 		String filePath = dlg.open();
 		if(filePath == null)
 			return;
-		String fileManager = "SendFileByte:"+fileClient;
+		String fileManager = "SendFileByte"+fileClient;
 		File f = new File(filePath);
 		try{
 			DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
@@ -200,7 +251,7 @@ public class ClientApp {
 	protected void createContents() {
 		shell = new Shell();
 		shell.setSize(450, 338);
-		shell.setText("SWT Application");
+		shell.setText("ChatSystem - 用户："+username);
 		
 		Label label = new Label(shell, SWT.NONE);
 		label.setBounds(10, 24, 61, 17);
@@ -224,6 +275,15 @@ public class ClientApp {
 		btnQuit.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				String str ="EXIT";
+				cout.println(str); 
+				try {
+					socket.close();
+					filesocket.close();
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+
+				}
 				shell.close();
 			}
 		});
@@ -234,6 +294,15 @@ public class ClientApp {
 		btnConnect.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if(textPort.getText()=="")
+				{
+					MessageDialog.openInformation(new Shell(), "Warning", "端口号不能为空");
+					return;
+				}
+				if(textIP.getText()=="")
+				{
+					textIP.setText("127.0.0.1");
+				}
 				try {
 					InetAddress ip = InetAddress.getByName(textIP.getText());
 					int port = Integer.parseInt(textPort.getText());
@@ -241,6 +310,10 @@ public class ClientApp {
 //					MessageDialog.openInformation(new Shell(), "1", socket.toString());
 					filesocket = new Socket(ip,port);
 					textArea.append("正在连接服务器\n");
+					textPort.setEnabled(false);
+					textIP.setEnabled(false);
+					btnDeconnect.setEnabled(true);
+					btnConnect.setEnabled(false);
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					textArea.append("服务器连接错误\n");
@@ -257,6 +330,8 @@ public class ClientApp {
 					
 				}catch(IOException e2){
 					textArea.append("输入输出异常\n");
+				}catch(Exception e3){
+					textArea.append("此端口不存在\n");
 				}
 			}
 		});
@@ -264,6 +339,7 @@ public class ClientApp {
 		btnConnect.setBounds(294, 62, 63, 27);
 		
 		btnDeconnect = new Button(shell, SWT.NONE);
+		btnDeconnect.setEnabled(false);
 		btnDeconnect.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -271,12 +347,16 @@ public class ClientApp {
 //				MessageDialog.openInformation(new Shell(), "1", socket.toString());
 				
 				if(socket!=null){
-					MessageDialog.openInformation(new Shell(), "1", socket.toString());
+//					MessageDialog.openInformation(new Shell(), "1", socket.toString());
 					
 					cout.println(str); 
 					textArea.append("客户请求断开连接\n");
+					textPort.setEnabled(true);
+					textIP.setEnabled(true);
+					btnDeconnect.setEnabled(false);
+					btnConnect.setEnabled(true);
 				} else
-					textArea.append("您已断开连接\n");
+					textArea.append("您不处于连接状态\n");
 			}
 		});
 		btnDeconnect.setText("断开连接");
@@ -309,8 +389,9 @@ public class ClientApp {
 		btnSendF.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if(list.getSelectionIndex()>=0&& list.getSelection()[0]!=username )
-					SendFile(list.getSelection()[0]);
+				if(list.getSelectionIndex()>=0&& list.getSelection()[0]!=username ) 
+	 					SendFile(list.getSelection()[0]); 
+
 			}
 
 
@@ -329,6 +410,19 @@ public class ClientApp {
 		labelUsername = new Label(shell, SWT.NONE);
 		labelUsername.setBounds(77, 24, 211, 17);
 		labelUsername.setText(username);
+		
+		button = new Button(shell, SWT.NONE);
+		button.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				if(list.getItemCount()>0) 
+ 					SendFileALL();
+				else
+					textArea.append("当前没有用户在线");
+			}
+		});
+		button.setText("群发文件");
+		button.setBounds(106, 263, 80, 27);
 
 	}
 }
