@@ -11,8 +11,10 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.custom.CCombo;
 
 public class ClientApp {
 
@@ -38,7 +40,7 @@ public class ClientApp {
 	public String[] fFile;
 	private Label labelUsername;
 	private Button button;
-
+	Combo combo;
 	/**
 	 * Launch the application.
 	 * @param args
@@ -101,7 +103,7 @@ public class ClientApp {
 					{
 						this.appendTextArea("输入输出异常\n");
 					}
-					if(line.equalsIgnoreCase("exit"))	{
+					if(line.equalsIgnoreCase("exit")){
 						try{
 							socket.close();
 							this.appendTextArea("接收到服务器断开连接信息\n");
@@ -127,7 +129,8 @@ public class ClientApp {
 					}else if(line.contains("SendFileByte")){
 						fFile = line.substring(12).split("#");
 						flag='F';
-					}else{
+					}
+					else{
 						if(flag!='G')this.appendTextArea(line+"\n");
 						else flag='T';
 					}
@@ -138,6 +141,7 @@ public class ClientApp {
 				}
 			}
 		}
+		
 	}
 	
 	class SendFileThread extends Thread{
@@ -174,25 +178,6 @@ public class ClientApp {
 	/**
 	 * create method
 	 */
-	private void SendFileALL() {
-		// TODO Auto-generated method stub
-		FileDialog dlg = new FileDialog(new Shell(),SWT.OPEN);
-		dlg.setText("选择需要发送的文件");
-		String filePath = dlg.open();
-		if(filePath == null)
-			return;
-		
-		String fileClient = null;
-		for(int i=0;i<list.getItemCount();i++)
-		{	
-			fileClient = list.getItem(i);
-			if(fileClient.equals(username))
-				continue;
-			System.out.println(i);
-			SendFileThread sendF = new SendFileThread(filePath, fileClient);
-			sendF.start();
-		}
-	}
 	private void SendFile(String fileClient) {
 		int count=0;
 		// TODO Auto-generated method stub
@@ -201,23 +186,47 @@ public class ClientApp {
 		String filePath = dlg.open();
 		if(filePath == null)
 			return;
-		String fileManager = "SendFileByte"+fileClient;
-		File f = new File(filePath);
-		try{
-			DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
-			DataOutputStream ps = new DataOutputStream(filesocket.getOutputStream());
-			byte[] buf = new byte[fis.available()];
-			fileManager=fileManager+"#"+f.getName()+"#"+f.length()+"#"+username;
-			cout.println(fileManager); cout.flush(); 
-			while ((count = fis.read(buf,0,buf.length)) > 0) {
-				ps.write(buf,0,count); ps.flush(); 
-			}
-			fis.close();
-		}catch(Exception e){
-				e.printStackTrace();
+		SendFileThread sendF = new SendFileThread(filePath, fileClient);
+		sendF.start();
+	}
+	private void SendFileALL() {
+		// TODO Auto-generated method stub
+		int count = 0;
+		FileDialog dlg = new FileDialog(new Shell(),SWT.OPEN);
+		dlg.setText("选择需要发送的文件");
+		String filePath = dlg.open();
+		if(filePath == null)
+			return;
+		
+		String fileClient = null;
+		String fileManager = null;
+		for(int i=0;i<list.getItemCount();i++)
+		{	
+			count = 0;
+			fileClient = list.getItem(i);
+			if(fileClient.equals(username))
+				continue;
+//			SendFileThread sendF = new SendFileThread(filePath, fileClient);
+//			sendF.start();
+			fileManager = "SendFileByte"+fileClient;
+			File f = new File(filePath);
+			try{
+				DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
+				DataOutputStream ps = new DataOutputStream(filesocket.getOutputStream());
+				byte[] buf = new byte[fis.available()];
+				fileManager=fileManager+"#"+f.getName()+"#"+f.length()+"#"+username;
+				cout.println(fileManager); cout.flush(); 
+				while ((count = fis.read(buf,0,buf.length)) > 0) {
+					ps.write(buf,0,count); ps.flush(); 
+				}
+				fis.close();
+			}catch(Exception e){
+					e.printStackTrace();
 
+			}
 		}
 	}
+
 	public String SaveFile(String filename,int filelen)
 	{
 		int len =0;
@@ -241,7 +250,7 @@ public class ClientApp {
 			in.close();
 		}catch(IOException e)
 		{
-			
+			textArea.append("文件传输失败");
 		}
 		return savePath;
 	}
@@ -350,11 +359,13 @@ public class ClientApp {
 //					MessageDialog.openInformation(new Shell(), "1", socket.toString());
 					
 					cout.println(str); 
-					textArea.append("客户请求断开连接\n");
+					list.removeAll();
 					textPort.setEnabled(true);
 					textIP.setEnabled(true);
 					btnDeconnect.setEnabled(false);
 					btnConnect.setEnabled(true);
+					textArea.append("客户请求断开连接\n");
+
 				} else
 					textArea.append("您不处于连接状态\n");
 			}
@@ -363,19 +374,26 @@ public class ClientApp {
 		btnDeconnect.setBounds(363, 62, 61, 27);
 		
 		textManager = new Text(shell, SWT.BORDER);
-		textManager.setBounds(10, 104, 278, 23);
+		textManager.setBounds(10, 104, 261, 23);
 		
 		btnSendM = new Button(shell, SWT.NONE);
 		btnSendM.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				String str = textManager.getText();
-				str=username+":"+str;
-				cout.println(str);
+				if(combo.getSelectionIndex()==0){
+					String str = textManager.getText();
+					str=username+":"+str;
+					cout.println(str);
+				}else if(combo.getSelectionIndex()==1)
+				{
+					String str = textManager.getText();
+					str=username+"(private):"+str;
+					cout.println(str);
+				}
 			}
 		});
 		btnSendM.setText("发送信息");
-		btnSendM.setBounds(321, 100, 80, 27);
+		btnSendM.setBounds(344, 102, 80, 27);
 		
 		lblNewLabel_1 = new Label(shell, SWT.NONE);
 		lblNewLabel_1.setAlignment(SWT.CENTER);
@@ -423,6 +441,11 @@ public class ClientApp {
 		});
 		button.setText("群发文件");
 		button.setBounds(106, 263, 80, 27);
+		
+		combo = new Combo(shell, SWT.DROP_DOWN | SWT.READ_ONLY);
+		combo.setItems(new String[] {"全体", "私人"});
+		combo.setBounds(277, 104, 61, 25);
+		combo.select(0);
 
 	}
 }

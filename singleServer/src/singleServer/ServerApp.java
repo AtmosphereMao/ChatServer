@@ -82,6 +82,7 @@ public class ServerApp {
 			cout.flush(); // 清空缓冲区数据
 			
 		}
+		
 		public void run() {
 			String fd = null;
 			while(true)
@@ -93,8 +94,8 @@ public class ServerApp {
 						str = cin.readLine();
 					}catch(IOException e)
 					{
-						appendTA("读取客户信息错误");
-						disconnect(this);
+//						appendTA("读取客户信息错误\n");
+//						disconnect(this);
 						return;
 					}
 					if(str.equalsIgnoreCase("EXIT"))
@@ -126,6 +127,7 @@ public class ServerApp {
 					String savePath = SaveFile(fin,fFile[1],Integer.parseInt(fFile[2]));
 					SendFile(savePath,fFile[1],Integer.parseInt(fFile[2]),fd);
 					Client conn = GetClient(fFile[3]);
+					
 					conn.send(fFile[1]+"已发送至用用户"+fFile[0]);
 					flag='G';
 				}
@@ -223,7 +225,7 @@ public class ServerApp {
 				}
 			}
 		});
-		conn.send("退出");
+		conn.send("已断开");
 		userList.removeElement(conn);
 		try{
 			conn.s.close();
@@ -260,7 +262,7 @@ public class ServerApp {
 		try{ 
 			DataInputStream fis = new DataInputStream(new BufferedInputStream(new FileInputStream(savePath))); 
 			Client c=GetClient(fFile[0]);
-//			System.out.println(line);
+			System.out.println(line);
 			c.send(line);
 			while ((len = fis.read(buf,0,buf.length)) > 0) 
 			{ 
@@ -282,7 +284,7 @@ public class ServerApp {
 		
 		String savePath = ".\\server\\"+filename;
 		File testFile = new File(".\\server");
-		if(!testFile.exists())
+		if(!testFile.exists()) // 判断文件夹如果不存在 则重新创建
 			testFile.mkdirs();
 		File f = new File(savePath);
 		byte[] buf = new byte[filelen];
@@ -321,14 +323,10 @@ public class ServerApp {
 	private Client GetClient(String username) {
 		// TODO Auto-generated method stub
 
-//		for(int i=0;i<userList.size();i++)
-//			System.out.println(userList.elementAt(i));
-//		System.out.println("user:"+username);
 		for(int i=0;i<userList.size();i++)
 		{
 			Client conn = (Client) userList.elementAt(i);
-//			System.out.println("equals:"+conn.username.substring(conn.username.indexOf(":")+1));
-			
+			// 判断接收的username是否存在userList列表中
 			if(username.equals(conn.username.substring(conn.username.indexOf(":")+1)))
 				return conn;
 		}
@@ -447,11 +445,28 @@ public class ServerApp {
 		btnKick.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if(list.getSelectionIndex()>=0)
+				if(list.getSelectionCount()>=0)
 				{
-					Client c = GetClient(list.getSelection()[0]);
-					if(c!=null)
-						disconnect(c);
+					Client c;
+					if(list.getSelectionIndex()==0)
+					{
+						for(int i=1;i<list.getItemCount();i++)
+						{
+							System.out.print(i);
+							c = GetClient(list.getItem(i));
+							if(c!=null)
+								disconnect(c);	
+						}
+						// 不知为何删不了第一个用户 毫无办法再运行一次删除第一个
+						c = GetClient(list.getItem(1));
+						if(c!=null)
+							disconnect(c);	
+					}else{
+						c = GetClient(list.getSelection()[0]);
+						if(c!=null)
+							disconnect(c);	
+					}
+					
 				}
 			}
 		});
