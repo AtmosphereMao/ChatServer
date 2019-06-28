@@ -9,7 +9,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.wb.swt.SWTResourceManager;
-
+import java.util.regex.*;
 
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Button;
@@ -43,6 +43,7 @@ public class ServerApp {
 		Socket s;
 		Socket f;
 		String username;
+		String[] sendStr;
 		public void appendTA(String str)
 		{
 			Display.getDefault().syncExec(new Runnable(){
@@ -112,12 +113,29 @@ public class ServerApp {
 					else{
 						if(flag!='G')
 						{
-							this.appendTA(str+"\n");
-							Client conns;
-							for(int i=0;i<userList.size();i++)
-							{
-								conns = (Client) userList.elementAt(i);
-								conns.send(str);
+							if(str.contains("private"))
+							{							
+								sendStr = str.split("#");
+//								for(int i=0;i<sendStr.length;i++)
+//								{
+//									System.out.println(sendStr[i]);
+//								}
+								this.appendTA(sendStr[0]+"->"+sendStr[2]+":"+sendStr[3]+"\n");
+								Client conns;
+//									System.out.println(list.getItem(i+1));
+								conns = GetClient(sendStr[0]);
+								conns.send(sendStr[0]+"->"+sendStr[2]+":"+sendStr[3]+"\n");
+								conns = GetClient(sendStr[2]);
+								conns.send(sendStr[0]+"->"+sendStr[2]+":"+sendStr[3]+"\n");
+							}else{	
+								this.appendTA(str+"\n");
+								Client conns;
+								for(int i=0;i<userList.size();i++)
+								{
+									conns = (Client) userList.elementAt(i);
+									conns.send(str);
+									
+								}
 							}
 						}
 						else

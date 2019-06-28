@@ -32,6 +32,7 @@ public class ClientApp {
 	private Socket socket=null;
 	private String username=null;
 	private char flag='T';
+	private char Pflag = 'T';
 	public String[] userList=null;
 	public List list;
 	private Socket filesocket = null;
@@ -386,8 +387,13 @@ public class ClientApp {
 					cout.println(str);
 				}else if(combo.getSelectionIndex()==1)
 				{
+					if(list.getSelectionCount()==0)
+					{
+						MessageDialog.openInformation(new Shell(), "Warning", "Œ¥—°‘Ò”√ªß");
+						return;
+					}
 					String str = textManager.getText();
-					str=username+"(private):"+str;
+					str=username+"#private#"+list.getSelection()[0]+"#"+str;
 					cout.println(str);
 				}
 			}
